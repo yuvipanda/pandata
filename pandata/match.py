@@ -38,8 +38,8 @@ for wd in wds:
 
 open("missing_ids.json", "w").write(json.dumps(missing_ids))
 properties_json = sorted(
-    [(get_property(id), count) for id, count in properties_count.iteritems()],
-    key=lambda p: -p[1]
+    [(id, get_property(id), count) for id, count in properties_count.iteritems()],
+    key=lambda p: -p[-1]
 )
 open("properties.json", "w").write(json.dumps(properties_json))
 
