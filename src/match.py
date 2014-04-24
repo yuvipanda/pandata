@@ -2,38 +2,52 @@
 import pandora_client as pandora
 from mwapi import MWApi
 
-def chunks(l, n):
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
 
-def get_pando_links():
-    api = pandora.API("https://indiancine.ma/api")
-    resp = api.find(
-        query={
-            'conditions': [
-                {
-                    'key': 'list',
-                    'value': 'j:Wikipedia',
-                    'operator': ''
-                }
-            ],
-            'operator': '&'
-        },
-        keys=['links'],
-        range=[0, 5000]
-    )
-    items = resp["data"]["items"]
-    for item in items:
-        yield item["links"][0].replace("http://en.wikipedia.org/wiki/", "")
+class PandoItem(object):
+    def __init__(self, id, enwiki_title):
+        self.id = id
+        self.enwiki_title = enwiki_title
+
+
+class PandoQuery(object):
+    def __init__(self, conditions, operator="&", items_per_page=100):
+        self._query = {
+            'conditions': conditions,
+            'operator': operator
+        }
+        self._items_per_page = items_per_page
+        self._start_item_number = 0
+        self._api = pandora.API("https://indiancine.ma/api")
+
+    def get_next_page(self):
+        resp = self._api.find(
+            query=self._query,
+            keys=["links", "id"],
+            range=[self._start_item_number, self._start_item_number + self._items_per_page]
+        )
+        itemsJSON = resp["data"]["items"]
+        items = []
+        for itemJSON in itemsJSON:
+            items.append(PandoItem(
+                itemJSON["id"],
+                itemJSON["links"][0].replace("http://en.wikipedia.org/wiki/", "")
+            ))
+
+        self._start_item_number += self._items_per_page
+
+        return items
 
 missing_titles = []
 
 mwapi = MWApi("https://www.wikidata.org")
-def claims_for_titles(titles, wiki="enwiki"):
+def claims_for_pando_items(pando_items, wiki="enwiki"):
+    enwiki_titles = []
+    for pi in pando_items:
+        enwiki_titles.append(pi.enwiki_title)
     resp = mwapi.get(
         action="wbgetentities",
         sites=wiki,
-        titles="|".join(titles),
+        titles="|".join(enwiki_titles),
         props="info|claims"
     )
     items = resp["entities"].values()
@@ -67,11 +81,17 @@ class WikiDataItem(object):
 
 properties_count = {}
 
-title_chunks = chunks(list(get_pando_links()), 100)
+query = PandoQuery([
+    {"key": "list", "value": "j:Wikipedia"}
+])
 wds = []
-for title_chunk in title_chunks:
-    wds.extend(claims_for_titles(title_chunk))
+
+pando_items = query.get_next_page()
+while len(pando_items):
+    claims_for_pando_items(pando_items)
+    wds.extend(claims_for_pando_items(pando_items))
     print "Done for %d, missing %d" % (len(wds), len(missing_titles))
+    pando_items = query.get_next_page()
 
 for wd in wds:
     for prop in wd.claims:
