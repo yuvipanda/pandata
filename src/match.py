@@ -98,6 +98,22 @@ class WikiDataItem(object):
         self.id = id
         self.title = title
 
+
+class WikiDataProperty(object):
+    def __init__(self, id, title):
+        self.id = id
+        self.title = title
+
+
+def get_property(id):
+    resp = mwapi.get(
+        action="wbgetentities",
+        ids=id,
+        props="labels",
+        languages="en"
+    )
+    return resp["entities"].values()[0]["labels"]["en"]["value"]
+
 properties_count = {}
 
 query = PandoQuery([
@@ -112,10 +128,15 @@ while not pando_items.is_empty():
     missing_ids.extend([pi.id for pi in pando_items.items_missing_wikidata])
     print "Done for %d, missing %d" % (len(wds), len(missing_titles))
     pando_items = query.get_next_page()
+    break
 
 for wd in wds:
     for prop in wd.claims:
         properties_count[prop] = properties_count.get(prop, 0) + 1
 
-print properties_count
-open("missing_ids", "w").write(json.dumps(missing_ids))
+open("missing_ids.json", "w").write(json.dumps(missing_ids))
+properties_json = sorted(
+    [(get_property(id), count) for id, count in properties_count.iteritems()],
+    key=lambda p: -p[1]
+)
+open("properties.json", "w").write(json.dumps(properties_json))
