@@ -1,6 +1,7 @@
 import pandora_client as pandora
 from PandoItem import PandoItem
 from PandoItemList import PandoItemList
+from urllib import unquote
 
 
 class PandoQuery(object):
@@ -24,7 +25,7 @@ class PandoQuery(object):
         for itemJSON in itemsJSON:
             items.append(PandoItem(
                 itemJSON["id"],
-                itemJSON["links"][0].replace("http://en.wikipedia.org/wiki/", "")
+                unquote(itemJSON["links"][0].replace("http://en.wikipedia.org/wiki/", "")).replace("_", " ")
             ))
 
         self._start_item_number += self._items_per_page

@@ -6,12 +6,11 @@ class WikiDataItem(object):
 
     @classmethod
     def parse(cls, data):
-        title = data["title"]
-        if "id" in data:
-            id = data["id"]
-        else:
-            # Item has been deleted
-            id = None
+        print data
+        if "id" not in data:
+            return None
+        id = data["id"]
+        title = data["sitelinks"]["enwiki"]["title"]
         claims = {}
         if "claims" in data:
             for property, claimJSON in data["claims"].iteritems():

@@ -3,7 +3,7 @@ import json
 
 from mwapi import MWApi
 from PandoQuery import PandoQuery
-
+from PanDataItem import *
 
 missing_titles = []
 
@@ -23,23 +23,8 @@ properties_count = {}
 query = PandoQuery([
     {"key": "list", "value": "j:Wikipedia"}
 ])
-wds = []
-missing_ids = []
 
-pando_items = query.get_next_page()
-while not pando_items.is_empty():
-    wds.extend(pando_items.get_wikidata_items(mwapi))
-    print "Done for %d, missing %d" % (len(wds), len(missing_ids))
-    pando_items = query.get_next_page()
+pd_items = PanDataItemList.from_pando_query(query, mwapi)
 
-for wd in wds:
-    for prop in wd.claims:
-        properties_count[prop] = properties_count.get(prop, 0) + 1
-
-open("missing_ids.json", "w").write(json.dumps(missing_ids))
-properties_json = sorted(
-    [(id, get_property(id), count) for id, count in properties_count.iteritems()],
-    key=lambda p: -p[-1]
-)
-open("properties.json", "w").write(json.dumps(properties_json))
+print list(pd_items.get_missing_wikidata())
 
