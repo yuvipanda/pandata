@@ -9,7 +9,6 @@ missing_titles = []
 
 mwapi = MWApi("https://www.wikidata.org")
 
-
 def get_property(id):
     resp = mwapi.get(
         action="wbgetentities",
@@ -30,10 +29,8 @@ missing_ids = []
 pando_items = query.get_next_page()
 while not pando_items.is_empty():
     wds.extend(pando_items.get_wikidata_items(mwapi))
-    missing_ids.extend([pi.id for pi in pando_items.items_missing_wikidata])
     print "Done for %d, missing %d" % (len(wds), len(missing_ids))
     pando_items = query.get_next_page()
-    break
 
 for wd in wds:
     for prop in wd.claims:
